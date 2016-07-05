@@ -2,6 +2,7 @@ package {
 import away3d.containers.View3D;
 import away3d.core.managers.Stage3DManager;
 import away3d.core.managers.Stage3DProxy;
+import away3d.debug.AwayStats;
 import away3d.entities.ParticleGroup;
 import away3d.events.ParserEvent;
 import away3d.events.Stage3DEvent;
@@ -32,6 +33,7 @@ public class Main extends Sprite {
 	private var _dataToLoad : Dictionary = new Dictionary;
 	private var _stage3DProxy : Stage3DProxy;
 	private var _particleGroups : Vector.<ParticleGroup> = new Vector.<ParticleGroup>();
+	protected var _awayStats:AwayStats;
 	
 	private var _textField : TextField;
 	private function createTextField() : void {
@@ -61,7 +63,18 @@ public class Main extends Sprite {
 	private function init(e : Event = null) : void {
 		removeEventListener(Event.ADDED_TO_STAGE, init);		
 		setupStage();
+		initializeStats();
 		initialize3D();
+	}
+	
+	private function initializeStats():void {
+		addChild(_awayStats = new AwayStats());
+		_awayStats.visible = true;
+	}
+	
+	protected function tryPositionAwayStats() : void {
+		if(_awayStats)
+			_awayStats.x = stage.stageWidth - _awayStats.width;			
 	}
 
 	private function setupStage():void {
@@ -130,6 +143,8 @@ public class Main extends Sprite {
 	private function onResize(event : Event = null) : void {
 		_view.width = stage.stageWidth;
 		_view.height = stage.stageHeight;
+		
+		tryPositionAwayStats();
 	}
 	
 	private function loadEffect(effectPath : String, key : String) : void {
