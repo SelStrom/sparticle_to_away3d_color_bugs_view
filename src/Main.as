@@ -22,6 +22,8 @@ import flash.net.URLRequest;
 import flash.text.TextField;
 import flash.ui.Keyboard;
 import flash.utils.Dictionary;
+import starling.core.Starling;
+import starling.events.Event;
 
 /**
  * ...
@@ -33,51 +35,58 @@ public class Main extends Sprite {
 	private var _dataToLoad : Dictionary = new Dictionary;
 	private var _stage3DProxy : Stage3DProxy;
 	private var _particleGroups : Vector.<ParticleGroup> = new Vector.<ParticleGroup>();
-	protected var _awayStats:AwayStats;
+	protected var _awayStats : AwayStats;
 	
 	private var _textField : TextField;
+	private var _playBackSpeed : Number = 1;
+	private var _starling : Starling;
+	
 	private function createTextField() : void {
-		if(_textField == null) {
+		if (_textField == null) {
 			_textField = new TextField();
 			_textField.x = _textField.y = 0;
 			_textField.width = 500;
 			_textField.textColor = 0xffffff;
 			this.addChild(_textField);
-		} 
-	}
-
-	private function log(message : String) : void { 
-		if (_textField) {
-			_textField.text = message + "\n";
 		}
+	}
+	
+	private function log(message : String) : void {
+		if (gui) {
+			gui.label.text = message;
+		}
+	}
+	
+	public function get gui() : Gui {
+		return _starling ? _starling.root as Gui : null;
 	}
 	
 	public function Main() {
 		if (stage) {
 			init();
 		} else {
-			addEventListener(Event.ADDED_TO_STAGE, init);
+			addEventListener(flash.events.Event.ADDED_TO_STAGE, init);
 		}
 	}
 	
-	private function init(e : Event = null) : void {
-		removeEventListener(Event.ADDED_TO_STAGE, init);		
+	private function init(e : flash.events.Event = null) : void {
+		removeEventListener(flash.events.Event.ADDED_TO_STAGE, init);
 		setupStage();
 		initializeStats();
 		initialize3D();
 	}
 	
-	private function initializeStats():void {
+	private function initializeStats() : void {
 		addChild(_awayStats = new AwayStats());
 		_awayStats.visible = true;
 	}
 	
 	protected function tryPositionAwayStats() : void {
-		if(_awayStats)
-			_awayStats.x = stage.stageWidth - _awayStats.width;			
+		if (_awayStats)
+			_awayStats.x = stage.stageWidth - _awayStats.width;
 	}
-
-	private function setupStage():void {
+	
+	private function setupStage() : void {
 		stage.scaleMode = StageScaleMode.NO_SCALE;
 		stage.align = StageAlign.TOP_LEFT;
 		
@@ -86,29 +95,42 @@ public class Main extends Sprite {
 		createTextField();
 	}
 	
-	private function onKeyDown(event:KeyboardEvent):void {
+	private function onKeyDown(event : KeyboardEvent) : void {
 		switch (event.keyCode) {
-			case Keyboard.ENTER:
+			case Keyboard.ENTER: 
 				for each (var item : ParticleGroup in _particleGroups) {
 					trace("Reseting time");
 					item.animator.resetTime();
 					item.animator.start();
 				}
-			break;
-			case Keyboard.EQUAL:
+				break;
+			case Keyboard.EQUAL: 
+				_playBackSpeed += 0.1;
 				for each (var item : ParticleGroup in _particleGroups) {
-					item.animator.playbackSpeed += 0.1;
+					item.animator.playbackSpeed = _playBackSpeed;
 				}
-			break;
-			case Keyboard.MINUS:
+				break;
+			case Keyboard.MINUS: 
+				_playBackSpeed -= 0.1;
 				for each (var item : ParticleGroup in _particleGroups) {
-					item.animator.playbackSpeed -= 0.1;
+					item.animator.playbackSpeed = _playBackSpeed;
 				}
-			break;
+				break;
+			case Keyboard.P: 
+				if (_particleGroups.length >= 1 && _particleGroups[0].animator.playbackSpeed != _playBackSpeed) {
+					for each (var item : ParticleGroup in _particleGroups) {
+						item.animator.playbackSpeed = _playBackSpeed;
+					}
+				} else if (_playBackSpeed != 0) {
+					for each (var item : ParticleGroup in _particleGroups) {
+						item.animator.playbackSpeed = 0;
+					}
+				}
+				break;
 		}
 	}
-		
-	private function initialize3D() : void {		
+	
+	private function initialize3D() : void {
 		_stage3DProxy = Stage3DManager.getInstance(stage).getFreeStage3DProxy(false, Context3DProfile.BASELINE_EXTENDED);
 		_stage3DProxy.addEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextCreated);
 		_stage3DProxy.antiAlias = 8;
@@ -118,45 +140,69 @@ public class Main extends Sprite {
 		_view = new View3D();
 		_view.stage3DProxy = _stage3DProxy;
 		_view.shareContext = true;
-		_view.layeredView = true;	
+		_view.layeredView = true;
 		this.addChild(_view);
 		
 		new CameraController(_view.camera, stage);
 	}
 	
-	private function onContextCreated(event:Stage3DEvent):void {
-		stage.addEventListener(Event.RESIZE, onResize);
+	private function onContextCreated(event : Stage3DEvent) : void {
+		_starling = new Starling(Gui, this.stage, _stage3DProxy.viewPort, _stage3DProxy.stage3D);
+		_starling.addEventListener(starling.events.Event.ROOT_CREATED, onRootCreated);
+		_starling.start();
+		
+		stage.addEventListener(flash.events.Event.RESIZE, onResize);
 		onResize();
-
-		loadEffect("http://r.playerio.com/r/moba-zpuzrjgvp0pk6vq9l6mfq/effects_debug/left_container/debug.awp", "firstEffect");
-		loadEffect("http://r.playerio.com/r/moba-zpuzrjgvp0pk6vq9l6mfq/effects_debug/right_container/debug.awp", "secondEffect");
-	}	
+	}
 	
-	private function onEnterFrame(e : Event) : void {
+	private function onRootCreated(event : starling.events.Event) : void {
+		_starling.removeEventListener(starling.events.Event.ROOT_CREATED, onRootCreated);
+		Gui(_starling.root).sendButton.addEventListener(starling.events.Event.TRIGGERED, onSentURL);
+	}
+	
+	private function onSentURL(event : starling.events.Event) : void {
+		if (Gui(_starling.root).getURL() == "") {
+			return;
+		}
+		loadEffect(Gui(_starling.root).getURL(), "firstEffect");
+	}
+	
+	private function onEnterFrame(e : flash.events.Event) : void {
 		_view.render();
+		_starling.nextFrame();
 		if (_particleGroups.length >= 1) {
-			var help : String = "Press Enter to reset animation\nPress + to encrease the playback speed\nPress - to decrease the playback speed\n";
-			log(help + "\nPlayback speed : " + _particleGroups[0].animator.playbackSpeed.toFixed(1));
+			log("Animation speed : " + _particleGroups[0].animator.playbackSpeed.toFixed(1));
 		}
 	}
 	
-	private function onResize(event : Event = null) : void {
+	private function onResize(event : flash.events.Event = null) : void {
 		_view.width = stage.stageWidth;
 		_view.height = stage.stageHeight;
 		
 		tryPositionAwayStats();
 	}
 	
+	private function clear3DScene() : void {
+		while (_view.scene.numChildren > 0) {
+			_view.scene.removeChildAt(0);
+		}
+		if (_particleGroups.length != 0) {
+			_particleGroups.length = 0;
+		}
+	}
+	
 	private function loadEffect(effectPath : String, key : String) : void {
+		log("loading " +effectPath + " has started...");
+		clear3DScene();
 		var parser : ParticleGroupParser = new ParticleGroupParser();
 		_dataToLoad[parser] = false;
-		parser.addEventListener(ParserEvent.PARSE_COMPLETE, function (event : ParserEvent):void {
+		parser.addEventListener(ParserEvent.PARSE_COMPLETE, function(event : ParserEvent) : void {
 			parseComplete(event, key);
 		});
 		
 		var loader : AssetLoader = new AssetLoader();
 		loader.load(new URLRequest(effectPath), assetLoaderContext, null, parser);
-	}	
+	}
 	
 	private function parseComplete(event : ParserEvent, key : String) : void {
 		var parser : ParticleGroupParser = ParticleGroupParser(event.target);
@@ -168,7 +214,7 @@ public class Main extends Sprite {
 		checkLoadingComplete();
 	}
 	
-	private function checkLoadingComplete():void {
+	private function checkLoadingComplete() : void {
 		var loadedCount : int = 0;
 		var prepareToLoading : int = 0;
 		for each (var item : Boolean in _dataToLoad) {
@@ -182,18 +228,19 @@ public class Main extends Sprite {
 		}
 	}
 	
-	private function processLoadingComplete():void {
+	private function processLoadingComplete() : void {
 		trace("loading complete");
-		runEffect("firstEffect", new Vector3D(-400));
-		runEffect("secondEffect", new Vector3D(400));		
+		log("loading complete");
+		runEffect("firstEffect", new Vector3D());
 	}
 	
 	private function runEffect(key : String, position : Vector3D) : void {
 		var pg : ParticleGroup = AssetLibrary.getAsset(key) as ParticleGroup;
 		if (pg) {
-			_view.scene.addChild(pg);	
+			_view.scene.addChild(pg);
 			pg.position = position;
-			pg.animator.start();	
+			pg.animator.playbackSpeed = _playBackSpeed;
+			pg.animator.start();
 			_particleGroups.push(pg);
 			trace(key + " add to scene complete");
 		}
