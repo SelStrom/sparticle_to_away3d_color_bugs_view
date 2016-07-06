@@ -50,7 +50,7 @@ public class Gui extends LayoutGroup {
 		HorizontalLayout(footerGroup.layout).gap = 4;
 		this.addChild(footerGroup);
 		
-		_textInput.prompt = "Input full URL to .awd file";
+		_textInput.prompt = "Input full URL to .awp file";
 		_textInput.layoutData = new HorizontalLayoutData(100);
 		footerGroup.addChild(_textInput);
 		
