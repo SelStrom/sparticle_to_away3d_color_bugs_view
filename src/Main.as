@@ -143,6 +143,8 @@ public class Main extends Sprite {
 		_view.layeredView = true;
 		this.addChild(_view);
 		
+		_awayStats.registerView(_view);
+		
 		new CameraController(_view.camera, stage);
 	}
 	
