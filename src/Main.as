@@ -159,10 +159,14 @@ public class Main extends Sprite {
 	
 	private function onRootCreated(event : starling.events.Event) : void {
 		_starling.removeEventListener(starling.events.Event.ROOT_CREATED, onRootCreated);
+		Gui(_starling.root).setURL("../res/debug.awp");	 //crutch	
 		Gui(_starling.root).sendButton.addEventListener(starling.events.Event.TRIGGERED, onSentURL);
+		
+		//crutch
+		onSentURL();
 	}
 	
-	private function onSentURL(event : starling.events.Event) : void {
+	private function onSentURL(event : starling.events.Event = null) : void {
 		if (Gui(_starling.root).getURL() == "") {
 			return;
 		}

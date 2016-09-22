@@ -7,7 +7,7 @@ import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
 import feathers.layout.HorizontalLayout;
 import feathers.layout.HorizontalLayoutData;
-import feathers.themes.MetalWorksMobileTheme;
+import feathers.themes.MetalWorksDesktopTheme;
 
 /**
  * ...
@@ -22,8 +22,8 @@ public class Gui extends LayoutGroup {
 	public function Gui() {
 		super();
 		this.autoSizeMode = LayoutGroup.AUTO_SIZE_MODE_STAGE;
-		new MetalWorksMobileTheme(false);	
-		
+		//new MetalWorksMobileTheme();	
+		new MetalWorksDesktopTheme();
 		this.layout = new AnchorLayout();
 		
 		_textInput = new TextInput();
@@ -60,6 +60,10 @@ public class Gui extends LayoutGroup {
 	
 	public function getURL() : String {
 		return _textInput.text;
+	}
+	
+	public function setURL(text : String) : void {
+		_textInput.text = text;
 	}
 	
 	public function get sendButton():Button {
